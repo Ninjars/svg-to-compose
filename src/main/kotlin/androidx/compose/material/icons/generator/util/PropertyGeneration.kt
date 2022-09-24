@@ -1,6 +1,5 @@
 package androidx.compose.material.icons.generator.util
 
-import androidx.compose.material.icons.generator.ClassNames
 import com.squareup.kotlinpoet.*
 
 /**
@@ -22,11 +21,21 @@ internal inline fun FunSpec.Builder.withBackingProperty(
     backingProperty: PropertySpec,
     block: FunSpec.Builder.() -> Unit
 ): FunSpec.Builder = apply {
+    beginControlFlow("if (%N == null)", backingProperty)
+        .apply(block)
+        .endControlFlow()
+        .addStatement("return %N!!", backingProperty)
+}
+
+internal inline fun FunSpec.Builder.withBackingPropertyAndConstructor(
+    backingProperty: PropertySpec,
+    block: FunSpec.Builder.() -> Unit
+): FunSpec.Builder = apply {
     addCode(buildCodeBlock {
-        beginControlFlow("if (%N != null)", backingProperty)
-        addStatement("return %N!!", backingProperty)
+        beginControlFlow("return if ($backingProperty != null)")
+        addStatement("$backingProperty!!")
         endControlFlow()
     })
         .apply(block)
-        .addStatement("return %N!!", backingProperty)
+        .addStatement(".also { $backingProperty = it }")
 }

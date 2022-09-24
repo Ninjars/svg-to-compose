@@ -35,6 +35,7 @@ enum class PackageNames(val packageName: String) {
  */
 object ClassNames {
     val Icons = PackageNames.MaterialIconsPackage.className("Icons")
+    val Path = PackageNames.GraphicsPackage.className("Path")
     val ImageVector = PackageNames.VectorPackage.className("ImageVector")
     val PathFillType = PackageNames.GraphicsPackage.className("PathFillType", CompanionImportName)
     val StrokeCap = PackageNames.GraphicsPackage.className("StrokeCap", CompanionImportName)

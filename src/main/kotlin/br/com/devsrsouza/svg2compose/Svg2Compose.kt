@@ -5,6 +5,8 @@ import com.android.ide.common.vectordrawable.Svg2Vector
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.MemberName
+import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
+import com.squareup.kotlinpoet.asClassName
 import java.io.File
 import java.util.*
 import kotlin.io.path.createTempDirectory
@@ -14,7 +16,7 @@ typealias IconNameTransformer = (iconName: String, group: String) -> String
 object Svg2Compose {
 
     /**
-     * Generates source code for the [vectors] files.
+     * Generates source code for the vectors files.
      *
      * Supported types: SVG, Android Vector Drawable XML
      *
@@ -26,7 +28,8 @@ object Svg2Compose {
         accessorName: String,
         outputSourceDirectory: File,
         vectorsDirectory: File,
-        type: VectorType = VectorType.SVG,
+        inputType: VectorType = VectorType.SVG,
+        outputType: OutputType = OutputType.PATH,
         iconNameTransformer: IconNameTransformer = { it, _ -> it },
         allAssetsPropertyName: String = "AllAssets"
     ): ParsingResult {
@@ -41,7 +44,7 @@ object Svg2Compose {
             .onEnter { file ->
                 val dirIcons = file.listFiles()!!
                     .filter { it.isDirectory.not() }
-                    .filter { it.extension.equals(type.extension, ignoreCase = true) }
+                    .filter { it.extension.equals(inputType.extension, ignoreCase = true) }
 
                 val previousGroup = groupStack.peekOrNull()
 
@@ -61,7 +64,7 @@ object Svg2Compose {
 
                 val generatedIconsMemberNames: Map<VectorFile, MemberName> =
                     if (dirIcons.isNotEmpty()) {
-                        val drawables: List<Pair<File, File>> = when (type) {
+                        val drawables: List<Pair<File, File>> = when (inputType) {
                             VectorType.SVG -> dirIcons.map {
                                 val iconName = nameRelative(it).withoutExtension
 
@@ -87,14 +90,18 @@ object Svg2Compose {
                                     drawableFile.readText()
                                 )
                             }
-
-                        val writer = IconWriter(
-                            icons.values,
-                            groupClassName,
-                            iconsPackage,
-                        )
-
-                        val memberNames = writer.generateTo(outputSourceDirectory) { true }
+                        val memberNames = when (outputType) {
+                            OutputType.PATH -> PathWriter(
+                                icons.values,
+                                groupClassName,
+                                iconsPackage,
+                            ).generateTo(outputSourceDirectory) { true }
+                            OutputType.VECTOR_DRAWABLE -> IconWriter(
+                                icons.values,
+                                groupClassName,
+                                iconsPackage,
+                            ).generateTo(outputSourceDirectory) { true }
+                        }
 
                         icons.mapValues { entry ->
                             memberNames.first { it.simpleName == entry.value.kotlinName }
@@ -131,7 +138,11 @@ object Svg2Compose {
                     group.generatedIconsMemberNames.values,
                     group.groupClass,
                     allAssetsPropertyName,
-                    group.childGroups
+                    group.childGroups,
+                    when (outputType) {
+                        OutputType.PATH -> List::class.asClassName().parameterizedBy(ClassNames.Path)
+                        OutputType.VECTOR_DRAWABLE -> ClassNames.ImageVector
+                    }
                 )
 
                 for (propertySpec in allAssetsGenerator.createPropertySpec(group.groupFileSpec)) {
