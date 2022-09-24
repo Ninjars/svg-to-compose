@@ -93,3 +93,9 @@ Svg2Compose.parse(
 **Using in code**: `LineaIcons.Arrows.Buhttps://github.com/overpas/svg-to-compose-intellijttonUp`
 
 The project also generate an accessor for all yours assets, for the given example, it should be `LineaIcons.AllIcons` and it also generated for child groups `LineaIcons.Arrows.AllIcons`
+
+### Example 3: Hacky local use
+
+Go to the test folder and create or edit a test scenario to point to the directories on your computer you wish to process.
+
+This might be useful as a stop-gap measure when you want to use this as a tool for local development work.
